@@ -17,27 +17,26 @@ jobs:
           python-version: '3.8'
           cache: 'pip'
 
-      - name: Install dependencies
-        shell: bash
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
-      - name: Build with PyInstaller
+      - name: Clean conflicting OpenCV packages
         shell: bash
         run: |
-          python -m PyInstaller \
-            --noconfirm \
-            --clean \
-            --windowed \
-            --name IDCardOCRTool \
-            --collect-all paddleocr \
-            --collect-all numpy \
-            --collect-all pyclipper \
-            --collect-all shapely \
-            --collect-all skimage \
-            --hidden-import cv2 \
-            main.py
+          pip uninstall -y opencv-python opencv-contrib-python opencv-python-headless opencv-contrib-python-headless || true
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Smoke test imports
+        run: |
+          python -c "import sys; print(sys.version)"
+          python -c "import numpy; import numpy.core.multiarray; print('numpy ok', numpy.__version__)"
+          python -c "import cv2; print('cv2 ok', cv2.__version__)"
+          python -c "from paddleocr import PaddleOCR; print('paddleocr ok')"
+
+      - name: Build with spec
+        run: pyinstaller --noconfirm --clean id_ocr.spec
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
